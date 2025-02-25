@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello World!</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         body {
             background-color: #1e1e1e;
@@ -30,38 +31,28 @@
             width: 100%;
             outline: none;
             caret-color: transparent; /* Hide the default caret */
-            position: relative;
         }
-        #input::before {
-            content: attr(data-value) ' ';
-            display: inline-block;
-            white-space: pre;
-        }
-        #input::after {
+        .block-cursor::after {
             content: ' ';
             display: inline-block;
             width: 8px;
             height: 1em;
             background-color: #00ff00;
             animation: blink 1s step-end infinite;
-            position: absolute;
         }
         @keyframes blink {
             50% {
                 background-color: transparent;
             }
         }
-        .white-text {
-            color: #ffffff;
-        }
     </style>
 </head>
 <body>
-    <h1>/home/Wh1teR0se/Desktop</h1>
+    <h1>/home/Wh1teR0se/resume.log</h1>
     <div id="terminal">
         <div id="output"></div>
         <div id="input-line">
-            <span id="prompt">root@server#</span><input type="text" id="input" data-value="" autofocus>
+            <span id="prompt">root@server#</span><input type="text" id="input" autofocus>
         </div>
     </div>
 
@@ -124,7 +115,7 @@
                 { type: "basicText", content: '[ <span="gn">ok</span> ] Starting MTA: exim4.', delay: 20 },
                 { clear: true, type: "basicText", content: "Debian GNU/Linux 7 mrrobot ttyl", delay: 1000 },
                 { type: "basicText", content: "&nbsp", delay: 40 },
-                { type: "typedText", content: "root", prefix: "mrrobot login: ", playSound: "init", delay: 1500 },
+                { type: "typedText", content: "root", prefix: "Wh1teRose login: ", playSound: "init", delay: 1500 },
                 { type: "typedText", content: "•••••••••••", prefix: "password: ", delay: 500 },
                 { clear: true, type: "basicText", content: "", delay: 250 },
                 { clear: true, time: true, type: "basicText", color: "#008c23", prefixColor: "#008c23", content: "-!- friend_ [friend_@" + USER_IP + "] has joined #fsociety.", delay: 1000 }
@@ -132,11 +123,10 @@
         };
 
         const resumeContent = `
-            Name: Somil Tyagi
-            Email: tyagi.somil1998@gmail.com
-            Experience: 3.5 years in Incident Response, Cyber Security Professional.
-            Skills: Incident Response, Malware Analysis, Penetration Testing
-            Certs : GCIH, GREM, OSCP (Traning), Azure, hours of technical training......
+            Name: John Doe
+            Email: john.doe@example.com
+            Experience: 5 years in web development
+            Skills: HTML, CSS, JavaScript, React, Node.js
         `;
 
         function displayStartupLines(lines, index = 0) {
@@ -149,45 +139,35 @@
                 }
 
                 if (line.type === "basicText") {
-                    output.innerHTML += `<p class="white-text">${line.content.replace(/\[(.*?)\]/g, '<span>$&</span>')}</p>`;
+                    output.innerHTML += `<p>${line.content}</p>`;
                 } else if (line.type === "typedText") {
-                    output.innerHTML += `<p class="white-text">${line.prefix || ''}${line.content}</p>`;
+                    output.innerHTML += `<p>${line.prefix || ''}${line.content}</p>`;
+                }
+
+                // Add block cursor effect
+                const lastLine = output.lastElementChild;
+                if (lastLine) {
+                    lastLine.classList.add('block-cursor');
                 }
 
                 console.log(`Displaying line ${index + 1}: ${line.content}`);
                 setTimeout(() => {
+                    if (lastLine) {
+                        lastLine.classList.remove('block-cursor');
+                    }
                     displayStartupLines(lines, index + 1);
                 }, line.delay);
             } else {
                 console.log("All startup lines displayed. Showing input field.");
-                displayHelpCommands(); // Display help commands after startup lines
                 document.getElementById('input-line').style.visibility = 'visible';
                 document.getElementById('input').focus();
             }
-        }
-
-        function displayHelpCommands() {
-            const output = document.getElementById('output');
-            output.innerHTML += `
-                <p>Available commands:</p>
-                <ul>
-                    <li>help - List available commands</li>
-                    <li>ls - List files</li>
-                    <li>whoami - Display resume</li>
-                    <li>cat resume.txt - Display the contents of resume.txt</li>
-                    <li>clear - Clear the terminal</li>
-                </ul>
-            `;
         }
 
         window.onload = function() {
             console.log("Window loaded. Starting to display startup lines.");
             displayStartupLines(o.initial);
         };
-
-        document.getElementById('input').addEventListener('input', function(event) {
-            this.setAttribute('data-value', this.value);
-        });
 
         document.getElementById('input').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
@@ -201,7 +181,16 @@
                 console.log(`User entered command: ${input}`);
 
                 if (input === 'help') {
-                    displayHelpCommands();
+                    output.innerHTML += `
+                        <p>Available commands:</p>
+                        <ul>
+                            <li>help - List available commands</li>
+                            <li>ls - List files</li>
+                            <li>whoami - Display resume</li>
+                            <li>cat resume.txt - Display the contents of resume.txt</li>
+                            <li>clear - Clear the terminal</li>
+                        </ul>
+                    `;
                 } else if (input === 'ls') {
                     output.innerHTML += `
                         <p>Files:</p>
@@ -211,11 +200,10 @@
                     `;
                 } else if (input === 'whoami') {
                     output.innerHTML += `
-                        <p>Name: Somil Tyagi</p>
-                        <p>Email: tyagi.somil1998@gmail.com</p>
-                        <p>Experience: 3.5 years in Incident Response, Cyber Security Professional.</p>
-                        <p>Skills: Incident Response, Malware Analysis, Penetration Testing</p>
-                        <p>Certs: GCIH, GREM, OSCP (Training), Azure, hours of technical training......</p>
+                        <p>Name: John Doe</p>
+                        <p>Email: john.doe@example.com</p>
+                        <p>Experience: 5 years in web development</p>
+                        <p>Skills: HTML, CSS, JavaScript, React, Node.js</p>
                     `;
                 } else if (input === 'cat resume.txt') {
                     output.innerHTML += `<pre>${resumeContent}</pre>`;
@@ -228,7 +216,6 @@
                 }
 
                 event.target.value = '';
-                event.target.setAttribute('data-value', '');
                 output.scrollTop = output.scrollHeight;
             }
         });
