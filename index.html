@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Blog</title>
+    <title>Hello World!</title>
     <style>
         body {
             background-color: #1e1e1e;
@@ -12,9 +12,16 @@
             padding: 20px;
         }
         #terminal {
-            border: 1px solid #00ff00;
             padding: 10px;
             margin-top: 20px;
+        }
+        #input-line {
+            display: flex;
+            visibility: hidden; /* Hide the command prompt initially */
+        }
+        #prompt {
+            margin-right: 5px;
+            color: #ff0000;
         }
         #input {
             background: none;
@@ -22,35 +29,178 @@
             color: #00ff00;
             width: 100%;
             outline: none;
+            caret-color: transparent; /* Hide the default caret */
+            position: relative;
+        }
+        #input::before {
+            content: attr(data-value) ' ';
+            display: inline-block;
+            white-space: pre;
+        }
+        #input::after {
+            content: ' ';
+            display: inline-block;
+            width: 8px;
+            height: 1em;
+            background-color: #00ff00;
+            animation: blink 1s step-end infinite;
+            position: absolute;
+        }
+        @keyframes blink {
+            50% {
+                background-color: transparent;
+            }
+        }
+        .white-text {
+            color: #ffffff;
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to My Resume Blog</h1>
+    <h1>/home/Wh1teR0se/Desktop</h1>
     <div id="terminal">
-        <div id="output">
-            <p>Type 'help' to see available commands.</p>
-        </div>
-        <div>
-            <span>$ </span><input type="text" id="input" autofocus>
+        <div id="output"></div>
+        <div id="input-line">
+            <span id="prompt">root@server#</span><input type="text" id="input" data-value="" autofocus>
         </div>
     </div>
 
+    <audio id="beep" src="audio/beep.ogg" preload="auto"></audio>
+
     <script>
+        // Define USER_IP variable
+        const USER_IP = '127.0.0.1';
+
+        const o = {
+            initial: [
+                { type: "basicText", playSound: "init", content: "GRUB loading.", delay: 1000 },
+                { type: "basicText", content: "Welcome to GRUB!", delay: 2000 },
+                { clear: true, type: "basicText", content: "", delay: 2500 },
+                { clear: true, type: "basicText", content: "Loading Linux 3.2.0-4-amd64 ...", delay: 600 },
+                { type: "basicText", content: "Loading initial ramdisk  ...", delay: 1000 },
+                { clear: true, type: "basicText", content: "", delay: 600 },
+                { clear: true, type: "basicText", content: "Loading, please wait ...", delay: 1200 },
+                { type: "basicText", content: "[    2.194785] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
+                { type: "basicText", content: "[    2.195284] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
+                { type: "basicText", content: "[    2.196163] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
+                { type: "basicText", content: "INIT: version 2.88 booting", delay: 800 },
+                { type: "basicText", content: '[<span class="bl">info</span>] Using makefile-style concurrent boot in runlevel S.', delay: 0 },
+                { type: "basicText", content: '[ <span class="gn">ok</span> ] Starting the hot plug events dispatcher: udevd.', delay: 40 },
+                { type: "basicText", content: "....] Synthesizing the initial hotplug events...[    2.700609] piix_smbus 0000:00:07.3: Host SMBus controller not enabled!", delay: 200 },
+                { type: "basicText", content: "done.", delay: 40 },
+                { type: "basicText", content: "[ <span class=\"gn\">ok</span> ] Waiting for /dev to be fully populated...[    3.061484] Error: Driver 'pc spkr' is already registered, aborting...", delay: 40 },
+                { type: "basicText", content: "done.", delay: 200 },
+                { type: "basicText", content: '[ <span class="gn">ok</span> ] Setting preliminary keymap...done.', delay: 200 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating swap...done.', delay: 200 },
+                { type: "basicText", content: "[....] Checking root file system...fsck from util-linux 2.20.1 /dev/sda1: clean, 38190/1256640 files, 341993/5016832 blocks", delay: 40 },
+                { type: "basicText", content: "done.", delay: 40 },
+                { type: "basicText", content: '[<span class="bl">info</span>] Loading kernel module loop.', delay: 40 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files... /tmp.', delay: 40 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating lvm and md swap...done.', delay: 40 },
+                { type: "basicText", content: "[....] Checking file systems...fsck from util-linux 2.20.1", delay: 800 },
+                { type: "basicText", content: "done.", delay: 200 },
+                { type: "basicText", content: "[....] Mounting local filesystems...done.", delay: 500 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating swapfile swap...done.', delay: 100 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files....', delay: 20 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Setting kernel variables ...done.', delay: 100 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Configuring network interfaces...done.', delay: 500 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting rpcbind daemon....', delay: 200 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting NFS common utilities: statd idmapd.', delay: 200 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files....done.', delay: 200 },
+                { type: "basicText", content: '[<span class="bl">info</span>] Setting console screen modes.', delay: 40 },
+                { type: "basicText", content: '[<span class="bl">info</span>] Skipping font and keymap setup (handled by console-setup).', delay: 10 },
+                { type: "basicText", content: "[....] Setting up console font and keymap...done.", delay: 400 },
+                { type: "basicText", content: "INIT: Entering runlevel: 2", delay: 1000 },
+                { type: "basicText", content: '[<span class="bl">info</span>] Using makefile-style concurrent boot in runlevel 2.', delay: 90 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting NFS common utlities: statd idmapd.', delay: 20 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting rpcbind daemon...[....] Already running..', delay: 10 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting enhanced syslogd: rsyslogd.', delay: 300 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting deferred execution scheduler: atd.', delay: 300 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting ACPI services....', delay: 100 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting periodic command scheduler: cron', delay: 80 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting system message bus: dbus', delay: 1000 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting Avahi mDNS/DNS-SD Daemon: avahi-daemon.', delay: 40 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting Common Unix Printing System: cupsd', delay: 90 },
+                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting MTA: exim4.', delay: 20 },
+                { clear: true, type: "basicText", content: "Debian GNU/Linux 7 mrrobot ttyl", delay: 1000 },
+                { type: "basicText", content: "&nbsp", delay: 40 },
+                { type: "typedText", content: "root", prefix: "mrrobot login: ", playSound: "init", delay: 1500 },
+                { type: "typedText", content: "•••••••••••", prefix: "password: ", delay: 500 },
+                { clear: true, type: "basicText", content: "", delay: 250 },
+                { clear: true, time: true, type: "basicText", color: "#008c23", prefixColor: "#008c23", content: "-!- friend_ [friend_@" + USER_IP + "] has joined #fsociety.", delay: 1000 }
+            ]
+        };
+
+        const resumeContent = `
+            Name: John Doe
+            Email: john.doe@example.com
+            Experience: 5 years in web development
+            Skills: HTML, CSS, JavaScript, React, Node.js
+        `;
+
+        function displayStartupLines(lines, index = 0) {
+            if (index < lines.length) {
+                const output = document.getElementById('output');
+                const line = lines[index];
+
+                if (line.clear) {
+                    output.innerHTML = '';
+                }
+
+                if (line.type === "basicText") {
+                    output.innerHTML += `<p class="white-text">${line.content.replace(/\[(.*?)\]/g, '<span>$&</span>')}</p>`;
+                } else if (line.type === "typedText") {
+                    output.innerHTML += `<p class="white-text">${line.prefix || ''}${line.content}</p>`;
+                }
+
+                console.log(`Displaying line ${index + 1}: ${line.content}`);
+                setTimeout(() => {
+                    displayStartupLines(lines, index + 1);
+                }, line.delay);
+            } else {
+                console.log("All startup lines displayed. Showing input field.");
+                displayHelpCommands(); // Display help commands after startup lines
+                document.getElementById('input-line').style.visibility = 'visible';
+                document.getElementById('input').focus();
+            }
+        }
+
+        function displayHelpCommands() {
+            const output = document.getElementById('output');
+            output.innerHTML += `
+                <p>Available commands:</p>
+                <ul>
+                    <li>help - List available commands</li>
+                    <li>ls - List files</li>
+                    <li>whoami - Display resume</li>
+                    <li>cat resume.txt - Display the contents of resume.txt</li>
+                    <li>clear - Clear the terminal</li>
+                </ul>
+            `;
+        }
+
+        window.onload = function() {
+            console.log("Window loaded. Starting to display startup lines.");
+            displayStartupLines(o.initial);
+        };
+
+        document.getElementById('input').addEventListener('input', function(event) {
+            this.setAttribute('data-value', this.value);
+        });
+
         document.getElementById('input').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
+                event.preventDefault();
                 const input = event.target.value.trim();
                 const output = document.getElementById('output');
+                const inputLine = document.getElementById('input-line');
+                const inputSpan = document.getElementById('input');
+
+                output.innerHTML += `<div>${inputLine.innerHTML}</div>`;
+                console.log(`User entered command: ${input}`);
 
                 if (input === 'help') {
-                    output.innerHTML += `
-                        <p>Available commands:</p>
-                        <ul>
-                            <li>help - List available commands</li>
-                            <li>ls - List files</li>
-                            <li>whoami - Display resume</li>
-                        </ul>
-                    `;
+                    displayHelpCommands();
                 } else if (input === 'ls') {
                     output.innerHTML += `
                         <p>Files:</p>
@@ -65,14 +215,24 @@
                         <p>Experience: 5 years in web development</p>
                         <p>Skills: HTML, CSS, JavaScript, React, Node.js</p>
                     `;
+                } else if (input === 'cat resume.txt') {
+                    output.innerHTML += `<pre>${resumeContent}</pre>`;
+                } else if (input === 'clear') {
+                    output.innerHTML = '';
                 } else {
+                    const beep = document.getElementById('beep');
+                    beep.play();
                     output.innerHTML += `<p>Command not found: ${input}</p>`;
                 }
 
                 event.target.value = '';
+                event.target.setAttribute('data-value', '');
                 output.scrollTop = output.scrollHeight;
             }
         });
+
+        // Additional debugging information
+        console.log("Script loaded. Waiting for window to load.");
     </script>
 </body>
 </html>
