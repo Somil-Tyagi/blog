@@ -159,10 +159,25 @@
                     displayStartupLines(lines, index + 1);
                 }, line.delay);
             } else {
-                console.log("All startup lines displayed. Showing input field.");
+                console.log("All startup lines displayed. Showing help menu.");
+                displayHelpMenu();
                 document.getElementById('input-line').style.visibility = 'visible';
                 document.getElementById('input').focus();
             }
+        }
+
+        function displayHelpMenu() {
+            const output = document.getElementById('output');
+            output.innerHTML += `
+                <p>Available commands:</p>
+                <ul>
+                    <li>help - List available commands</li>
+                    <li>ls - List files</li>
+                    <li>whoami - Display resume</li>
+                    <li>cat resume.txt - Display the contents of resume.txt</li>
+                    <li>clear - Clear the terminal</li>
+                </ul>
+            `;
         }
 
         window.onload = function() {
