@@ -125,7 +125,7 @@
         const resumeContent = `
             Name: Somil Tyagi
             Email: tyagi.somil1998@gmail.com
-            Experience: 3.5 years in Incident Response, Cyber Security Professional.
+            Experience: 3.8 years in Incident Response, Cyber Security Professional.
             Skills: Incident Response, Malware Analysis, Penetration Testing
             Certs : GCIH, GREM, OSCP (Traning), Azure, hours of technical training......
         `;
@@ -159,68 +159,103 @@
                     displayStartupLines(lines, index + 1);
                 }, line.delay);
             } else {
-                console.log("All startup lines displayed. Showing input field.");
+                console.log("All startup lines displayed. Showing help menu.");
+                displayHelpMenu();
                 document.getElementById('input-line').style.visibility = 'visible';
                 document.getElementById('input').focus();
             }
         }
 
+        function displayHelpMenu() {
+            const output = document.getElementById('output');
+            output.innerHTML += `
+                <p>Available commands:</p>
+                <ul>
+                    <li>help - List available commands</li>
+                    <li>ls - List files</li>
+                    <li>whoami - Display resume</li>
+                    <li>cat resume.txt - Display the contents of resume.txt</li>
+                    <li>clear - Clear the terminal</li>
+                </ul>
+            `;
+        }
+
+        function handleUserInput(input) {
+            const output = document.getElementById('output');
+            const inputLine = document.getElementById('input-line');
+
+            output.innerHTML += `<div>${inputLine.innerHTML}</div>`;
+            console.log(`User entered command: ${input}`);
+
+            if (input === 'help') {
+                output.innerHTML += `
+                    <p>Available commands:</p>
+                    <ul>
+                        <li>help - List available commands</li>
+                        <li>ls - List files</li>
+                        <li>whoami - Display resume</li>
+                        <li>cat resume.txt - Display the contents of resume.txt</li>
+                        <li>clear - Clear the terminal</li>
+                    </ul>
+                `;
+            } else if (input === 'ls') {
+                const fileDetails = `
+                    rrw-r--r-- 1 root root 1024 Oct 10 12:34 resume.txt
+                `;
+                output.innerHTML += `<pre>${fileDetails}</pre>`;
+            } else if (input === 'whoami') {
+                output.innerHTML += `
+                    <p>Name: Somil Tyagi</p>
+                    <p>Email: tyagi.somil1998@gmail.com</p>
+                    <p>Experience: 3.5 years in Incident Response, Cyber Security Professional.</p>
+                    <p>Skills: Incident Response, Malware Analysis, Penetration Testing</p>
+                    <p>Certs: GCIH, GREM, OSCP (Training), Azure, hours of technical training......</p>
+                `;
+            } else if (input === 'cat resume.txt') {
+                output.innerHTML += `<pre>${resumeContent}</pre>`;
+            } else if (input === 'clear') {
+                output.innerHTML = '';
+            } else {
+                const beep = document.getElementById('beep');
+                beep.play();
+                output.innerHTML += `<p>Command not found: ${input}</p>`;
+            }
+
+            document.getElementById('input').value = '';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function setupInputListener() {
+            const inputElement = document.getElementById('input');
+
+            inputElement.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const input = event.target.value.trim();
+                    handleUserInput(input);
+                    inputElement.classList.remove('block-cursor');
+                } else {
+                    // Add block cursor effect while typing
+                    inputElement.classList.add('block-cursor');
+                }
+            });
+
+            inputElement.addEventListener('blur', function() {
+                // Remove block cursor effect when input loses focus
+                inputElement.classList.remove('block-cursor');
+            });
+
+            inputElement.addEventListener('focus', function() {
+                // Add block cursor effect when input gains focus
+                inputElement.classList.add('block-cursor');
+            });
+        }
+
         window.onload = function() {
             console.log("Window loaded. Starting to display startup lines.");
             displayStartupLines(o.initial);
+            setupInputListener();
         };
-
-        document.getElementById('input').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                const input = event.target.value.trim();
-                const output = document.getElementById('output');
-                const inputLine = document.getElementById('input-line');
-                const inputSpan = document.getElementById('input');
-
-                output.innerHTML += `<div>${inputLine.innerHTML}</div>`;
-                console.log(`User entered command: ${input}`);
-
-                if (input === 'help') {
-                    output.innerHTML += `
-                        <p>Available commands:</p>
-                        <ul>
-                            <li>help - List available commands</li>
-                            <li>ls - List files</li>
-                            <li>whoami - Display resume</li>
-                            <li>cat resume.txt - Display the contents of resume.txt</li>
-                            <li>clear - Clear the terminal</li>
-                        </ul>
-                    `;
-                } else if (input === 'ls') {
-                    output.innerHTML += `
-                        <p>Files:</p>
-                        <ul>
-                            <li>resume.txt</li>
-                        </ul>
-                    `;
-                } else if (input === 'whoami') {
-                    output.innerHTML += `
-                        <p>Name: Somil Tyagi</p>
-                        <p>Email: tyagi.somil1998@gmail.com/p>
-                        <p>Experience: 3.5 years in Incident Response, Cyber Security Professional.</p>
-                        <p>Skills: Incident Response, Malware Analysis, Penetration Testing</p>
-                        <p>Certs: GCIH, GREM, OSCP (Training), Azure, hours of technical training......</p>
-                    `;
-                } else if (input === 'cat resume.txt') {
-                    output.innerHTML += `<pre>${resumeContent}</pre>`;
-                } else if (input === 'clear') {
-                    output.innerHTML = '';
-                } else {
-                    const beep = document.getElementById('beep');
-                    beep.play();
-                    output.innerHTML += `<p>Command not found: ${input}</p>`;
-                }
-
-                event.target.value = '';
-                output.scrollTop = output.scrollHeight;
-            }
-        });
 
         // Additional debugging information
         console.log("Script loaded. Waiting for window to load.");
