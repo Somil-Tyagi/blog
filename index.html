@@ -61,25 +61,79 @@
         .bl { color: #4aa3ff; }
         .gn { color: #00ff00; }
 
+        /* Matrix rain canvas (toggled by the 'matrix' command) */
+        #matrix {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            background: #000;
+        }
+        #matrix.on { display: block; }
+        .matrix-hint {
+            position: fixed;
+            bottom: 12px; left: 0; right: 0;
+            z-index: 10000;
+            text-align: center;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 13px;
+            pointer-events: none;
+            text-shadow: 0 0 6px #00ff00;
+        }
+
+        /* ---------- CrowdStrike RTR-style bordered input dock ----------
+           Submit works BOTH ways: press Enter OR click "Run command". */
         #input-line {
             flex: 0 0 auto;
             display: flex;
             align-items: center;
+            gap: 8px;
             visibility: hidden;
+            margin-top: 10px;
+            padding: 10px 12px;
             font-size: clamp(11px, 3vw, 15px);
-            padding-top: 4px;
+            background: #141414;
+            border: 1px solid #2a5d2a;                 /* subtle green border */
+            border-radius: 8px;
+            transition: border-color .15s ease, box-shadow .15s ease;
         }
-        #prompt { margin-right: 6px; color: var(--prompt); white-space: nowrap; }
+        /* Glow highlight on focus, like the RTR "Enter command" box */
+        #input-line.focused {
+            border-color: var(--fg);
+            box-shadow: 0 0 0 1px var(--fg), 0 0 12px rgba(0, 255, 0, 0.35);
+        }
+        #prompt { color: var(--prompt); white-space: nowrap; font-weight: bold; }
         #input {
             background: none;
             border: none;
             color: var(--fg);
+            flex: 1 1 auto;
             width: 100%;
             outline: none;
             font-family: monospace;
             font-size: inherit;
             caret-color: var(--fg);
         }
+        #input::placeholder { color: #3a7a3a; }
+        /* "Run command" button (mirrors the RTR console) */
+        #run-btn {
+            flex: 0 0 auto;
+            background: #1b2f1b;
+            color: var(--fg);
+            border: 1px solid #2a5d2a;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-family: monospace;
+            font-size: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .15s ease, border-color .15s ease;
+        }
+        #run-btn:hover { background: #244a24; border-color: var(--fg); }
+        #run-btn:active { background: #2f602f; }
+        #run-btn .lock { opacity: .6; margin-left: 6px; }
+        @media (max-width: 480px) { #run-btn { padding: 6px 10px; } }
 
         /* ---------- Device-adaptive breakpoints ---------- */
 
@@ -108,11 +162,13 @@
     </style>
 </head>
 <body>
+    <canvas id="matrix"></canvas>
     <h1 id="hdr"></h1>
     <div id="terminal">
         <div id="output"></div>
         <div id="input-line">
-            <span id="prompt">#</span><input type="text" id="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
+            <span id="prompt">#</span><input type="text" id="input" placeholder="Enter command" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
+            <button id="run-btn" type="button">Run command<span class="lock">&#128274;</span></button>
         </div>
     </div>
 
@@ -137,8 +193,8 @@
         window.addEventListener("orientationchange", function () { setTimeout(setVH, 150); });
         if (window.visualViewport) window.visualViewport.addEventListener("resize", setVH);
 
-        var K = "pnTccVXcbEJvYxtyvSHBHPeN";
-        var P = "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";
+        var K = "pzrTEDMpgxFfLptkSZgDEhz8";
+        var P = "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";
 
         function decode(b64, key) {
             var bin = atob(b64);
@@ -238,10 +294,40 @@
             } else if (key === "blog") {
                 window.open(C.profile.blog, "_blank");
                 append("<p>Opening blog website...</p>");
+            } else if (key === "date") {
+                append("<p>" + escapeHtml(new Date().toString()) + "</p>");
+            } else if (key === "banner") {
+                append("<pre class='gn'>" + escapeHtml((C.banner || []).join("\n")) + "</pre>");
+            } else if (key === "neofetch") {
+                showNeofetch();
+            } else if (key === "matrix") {
+                append("<p>Entering the Matrix... (press ESC or click to exit)</p>");
+                startMatrix();
+            } else if (key === "sudo" || key.indexOf("sudo ") === 0) {
+                append("<p class='gn'>Nice try. This incident will be reported. \uD83D\uDE0F</p>");
+            } else if (key === "echo" || key.indexOf("echo ") === 0) {
+                append("<p>" + escapeHtml(input.slice(5)) + "</p>");
             } else {
                 try { beep.currentTime = 0; beep.play(); } catch (e) {}
-                append("<p>Command not found: " + escapeHtml(input) + "</p>");
+                append("<p>Command not found: " + escapeHtml(input) +
+                       " &mdash; type 'help'.</p>");
             }
+        }
+
+        /* neofetch-style system card (all data comes from encrypted C) */
+        function showNeofetch() {
+            var p = C.profile;
+            var card =
+                "user@server\n" +
+                "-----------\n" +
+                "Name    : " + p.name + "\n" +
+                "Role    : " + (C.role || "") + "\n" +
+                "Exp     : " + p.experience + "\n" +
+                "Skills  : " + p.skills + "\n" +
+                "Certs   : " + p.certs + "\n" +
+                "Shell   : " + (C.shell || "") + "\n" +
+                "Uptime  : too many all-nighters";
+            append("<pre class='gn'>" + escapeHtml(card) + "</pre>");
         }
 
         function appendList(arr) {
@@ -253,20 +339,141 @@
             append(html);
         }
 
-        /* ---------- input events ---------- */
+        /* ---------- interactive input ---------- */
+        var runBtn = document.getElementById("run-btn");
+
+        /* command names for Tab-autocomplete */
+        var COMMAND_NAMES = ["help", "ls", "whoami", "cat resume.txt", "clear",
+                             "connect", "blog", "date", "banner", "neofetch",
+                             "matrix", "echo", "sudo"];
+
+        /* command history (up/down arrows) */
+        var history = [];
+        var histIdx = -1;   /* -1 means "current, not browsing history" */
+
+        function submit() {
+            var val = inputEl.value;
+            inputEl.value = "";
+            if (val.trim() !== "") {
+                history.push(val);
+                if (history.length > 100) history.shift();
+            }
+            histIdx = -1;
+            handle(val);
+        }
+
         inputEl.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
-                var val = inputEl.value;
-                inputEl.value = "";          /* clear BEFORE handling */
-                handle(val);
+                submit();
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (history.length === 0) return;
+                if (histIdx === -1) histIdx = history.length - 1;
+                else if (histIdx > 0) histIdx--;
+                inputEl.value = history[histIdx];
+                moveCaretToEnd();
+            } else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (histIdx === -1) return;
+                if (histIdx < history.length - 1) {
+                    histIdx++;
+                    inputEl.value = history[histIdx];
+                } else {
+                    histIdx = -1;
+                    inputEl.value = "";
+                }
+                moveCaretToEnd();
+            } else if (e.key === "Tab") {
+                e.preventDefault();
+                autocomplete();
             }
         });
+
+        function moveCaretToEnd() {
+            var v = inputEl.value; inputEl.value = ""; inputEl.value = v;
+        }
+
+        function autocomplete() {
+            var cur = inputEl.value.toLowerCase();
+            if (!cur) return;
+            var matches = COMMAND_NAMES.filter(function (c) {
+                return c.indexOf(cur) === 0;
+            });
+            if (matches.length === 1) {
+                inputEl.value = matches[0];
+                moveCaretToEnd();
+            } else if (matches.length > 1) {
+                append("<p class='gn'>" + escapeHtml(matches.join("   ")) + "</p>");
+            }
+        }
+
+        /* Run button (same action as Enter) */
+        runBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            submit();
+            inputEl.focus();
+        });
+
+        /* focus glow on the input dock */
+        inputEl.addEventListener("focus", function () { inputLine.classList.add("focused"); });
+        inputEl.addEventListener("blur",  function () { inputLine.classList.remove("focused"); });
 
         /* keep focus / tap anywhere to focus (mobile friendly) */
         document.addEventListener("click", function () {
             if (inputLine.style.visibility === "visible") inputEl.focus();
         });
+
+        /* ---------- Matrix rain effect ---------- */
+        var matrixCanvas = document.getElementById("matrix");
+        var matrixTimer = null, matrixHint = null;
+        function startMatrix() {
+            var ctx = matrixCanvas.getContext("2d");
+            function size() {
+                matrixCanvas.width = window.innerWidth;
+                matrixCanvas.height = window.innerHeight;
+            }
+            size();
+            matrixCanvas.classList.add("on");
+
+            var chars = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+            var fontSize = 16;
+            var columns = Math.floor(matrixCanvas.width / fontSize);
+            var drops = [];
+            for (var x = 0; x < columns; x++) drops[x] = Math.random() * -50;
+
+            matrixTimer = setInterval(function () {
+                ctx.fillStyle = "rgba(0,0,0,0.06)";
+                ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+                ctx.fillStyle = "#00ff00";
+                ctx.font = fontSize + "px monospace";
+                for (var i = 0; i < drops.length; i++) {
+                    var text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }, 45);
+
+            matrixHint = document.createElement("div");
+            matrixHint.className = "matrix-hint";
+            matrixHint.textContent = "[ press ESC or click to exit the Matrix ]";
+            document.body.appendChild(matrixHint);
+
+            window.addEventListener("resize", size);
+            document.addEventListener("keydown", matrixEsc);
+            matrixCanvas.addEventListener("click", stopMatrix);
+        }
+        function matrixEsc(e) { if (e.key === "Escape") stopMatrix(); }
+        function stopMatrix() {
+            if (matrixTimer) { clearInterval(matrixTimer); matrixTimer = null; }
+            matrixCanvas.classList.remove("on");
+            document.removeEventListener("keydown", matrixEsc);
+            matrixCanvas.removeEventListener("click", stopMatrix);
+            if (matrixHint && matrixHint.parentNode) matrixHint.parentNode.removeChild(matrixHint);
+            matrixHint = null;
+            inputEl.focus();
+        }
 
         window.addEventListener("load", function () { runBoot(0); });
     })();
