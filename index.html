@@ -2,246 +2,274 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hello World!</title>
-<link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
-        body {
-            background-color: #1e1e1e;
-            color: #00ff00;
+        :root {
+            --fg: #00ff00;
+            --bg: #1e1e1e;
+            --prompt: #ff0000;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;               /* page never overflows */
+            background-color: var(--bg);
+            color: var(--fg);
             font-family: monospace;
-            padding: 20px;
+        }
+        body {
+            /* Fixed to the visible viewport on both laptop & mobile.
+               Layered fallbacks so it adapts to ANY device/browser:
+               1) 100vh          -> universal baseline
+               2) --vh JS var    -> older mobile browsers without dvh support
+               3) 100dvh         -> modern browsers (handles mobile toolbars) */
+            height: 100vh;                       /* fallback */
+            height: calc(var(--vh, 1vh) * 100);  /* JS-measured real height */
+            height: 100dvh;                      /* best, where supported */
+            display: flex;
+            flex-direction: column;
+            padding: clamp(8px, 2.5vw, 16px);    /* padding scales with device */
+        }
+        h1 {
+            flex: 0 0 auto;
+            margin: 0 0 8px 0;
+            font-size: clamp(14px, 4vw, 22px);
+            word-break: break-word;
         }
         #terminal {
-            padding: 10px;
-            margin-top: 20px;
-        }
-        #input-line {
+            flex: 1 1 auto;
+            min-height: 0;                  /* allow inner scroll in flexbox */
             display: flex;
-            visibility: hidden; /* Hide the command prompt initially */
+            flex-direction: column;
         }
-        #prompt {
-            margin-right: 5px;
-            color: #ff0000;
+        #output {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;               /* boot text scrolls INSIDE, screen stays fixed */
+            overflow-x: hidden;
+            font-size: clamp(11px, 3vw, 15px);
+            line-height: 1.4;
+            -webkit-overflow-scrolling: touch;
         }
+        #output p, #output div { margin: 0 0 2px 0; word-break: break-word; }
+        #output ul { margin: 4px 0; padding-left: 18px; }
+        #output pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+        .bl { color: #4aa3ff; }
+        .gn { color: #00ff00; }
+
+        #input-line {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            visibility: hidden;
+            font-size: clamp(11px, 3vw, 15px);
+            padding-top: 4px;
+        }
+        #prompt { margin-right: 6px; color: var(--prompt); white-space: nowrap; }
         #input {
             background: none;
             border: none;
-            color: #00ff00;
+            color: var(--fg);
             width: 100%;
             outline: none;
-            caret-color: transparent; /* Hide the default caret */
+            font-family: monospace;
+            font-size: inherit;
+            caret-color: var(--fg);
         }
-        .block-cursor::after {
-            content: ' ';
-            display: inline-block;
-            width: 8px;
-            height: 1em;
-            background-color: #00ff00;
-            animation: blink 1s step-end infinite;
+
+        /* ---------- Device-adaptive breakpoints ---------- */
+
+        /* Large workstations / wide monitors: cap width & center for readability */
+        @media (min-width: 1000px) {
+            body { max-width: 1100px; margin: 0 auto; padding: 20px; }
+            h1        { font-size: 22px; }
+            #output   { font-size: 15px; }
+            #input-line { font-size: 15px; }
         }
-        @keyframes blink {
-            50% {
-                background-color: transparent;
-            }
+
+        /* Small phones: tighter spacing, larger touch-friendly input */
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            h1        { font-size: 15px; }
+            #output   { font-size: 12px; line-height: 1.35; }
+            #input-line { font-size: 13px; }   /* >=13px avoids iOS auto-zoom feel */
+        }
+
+        /* Landscape on short screens (e.g. phone rotated): reclaim vertical space */
+        @media (max-height: 450px) and (orientation: landscape) {
+            h1 { margin-bottom: 4px; font-size: 14px; }
+            body { padding: 6px 10px; }
+            #output { line-height: 1.25; }
         }
     </style>
 </head>
 <body>
-    <h1>/home/Wh1teR0se/Desktop</h1>
+    <h1 id="hdr"></h1>
     <div id="terminal">
         <div id="output"></div>
         <div id="input-line">
-            <span id="prompt">root@server#</span><input type="text" id="input" autofocus>
+            <span id="prompt">#</span><input type="text" id="input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
         </div>
     </div>
 
     <audio id="beep" src="audio/beep.ogg" preload="auto"></audio>
 
     <script>
-        // Define USER_IP variable
-        const USER_IP = '127.0.0.1';
+    /* =================================================================
+       Encrypted payload. The readable content lives ONLY here, encoded,
+       so "View Source" reveals nothing meaningful. Decoded at runtime.
+       (Generated by build-encrypt.ps1 from content.js — do not edit.)
+       ================================================================= */
+    (function () {
+        /* ---- Device-adaptive viewport height ----
+           Sets --vh to 1% of the REAL visible height. Fixes older mobile
+           browsers where 100vh includes the address bar and overflows. */
+        function setVH() {
+            var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+            document.documentElement.style.setProperty("--vh", (h * 0.01) + "px");
+        }
+        setVH();
+        window.addEventListener("resize", setVH);
+        window.addEventListener("orientationchange", function () { setTimeout(setVH, 150); });
+        if (window.visualViewport) window.visualViewport.addEventListener("resize", setVH);
 
-        const o = {
-            initial: [
-                { type: "basicText", playSound: "init", content: "GRUB loading.", delay: 1000 },
-                { type: "basicText", content: "Welcome to GRUB!", delay: 2000 },
-                { clear: true, type: "basicText", content: "", delay: 2500 },
-                { clear: true, type: "basicText", content: "Loading Linux 3.2.0-4-amd64 ...", delay: 600 },
-                { type: "basicText", content: "Loading initial ramdisk  ...", delay: 1000 },
-                { clear: true, type: "basicText", content: "", delay: 600 },
-                { clear: true, type: "basicText", content: "Loading, please wait ...", delay: 1200 },
-                { type: "basicText", content: "[    2.194785] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
-                { type: "basicText", content: "[    2.195284] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
-                { type: "basicText", content: "[    2.196163] sd 0:0:0:0: [sda] Assuming drive cache: write through", delay: 100 },
-                { type: "basicText", content: "INIT: version 2.88 booting", delay: 800 },
-                { type: "basicText", content: '[<span class="bl">info</span>] Using makefile-style concurrent boot in runlevel S.', delay: 0 },
-                { type: "basicText", content: '[ <span class="gn">ok</span> ] Starting the hot plug events dispatcher: udevd.', delay: 40 },
-                { type: "basicText", content: "....] Synthesizing the initial hotplug events...[    2.700609] piix_smbus 0000:00:07.3: Host SMBus controller not enabled!", delay: 200 },
-                { type: "basicText", content: "done.", delay: 40 },
-                { type: "basicText", content: "[ <span class=\"gn\">ok</span> ] Waiting for /dev to be fully populated...[    3.061484] Error: Driver 'pc spkr' is already registered, aborting...", delay: 40 },
-                { type: "basicText", content: "done.", delay: 200 },
-                { type: "basicText", content: '[ <span class="gn">ok</span> ] Setting preliminary keymap...done.', delay: 200 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating swap...done.', delay: 200 },
-                { type: "basicText", content: "[....] Checking root file system...fsck from util-linux 2.20.1 /dev/sda1: clean, 38190/1256640 files, 341993/5016832 blocks", delay: 40 },
-                { type: "basicText", content: "done.", delay: 40 },
-                { type: "basicText", content: '[<span class="bl">info</span>] Loading kernel module loop.', delay: 40 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files... /tmp.', delay: 40 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating lvm and md swap...done.', delay: 40 },
-                { type: "basicText", content: "[....] Checking file systems...fsck from util-linux 2.20.1", delay: 800 },
-                { type: "basicText", content: "done.", delay: 200 },
-                { type: "basicText", content: "[....] Mounting local filesystems...done.", delay: 500 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Activating swapfile swap...done.', delay: 100 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files....', delay: 20 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Setting kernel variables ...done.', delay: 100 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Configuring network interfaces...done.', delay: 500 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting rpcbind daemon....', delay: 200 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting NFS common utilities: statd idmapd.', delay: 200 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Cleaning up temporary files....done.', delay: 200 },
-                { type: "basicText", content: '[<span class="bl">info</span>] Setting console screen modes.', delay: 40 },
-                { type: "basicText", content: '[<span class="bl">info</span>] Skipping font and keymap setup (handled by console-setup).', delay: 10 },
-                { type: "basicText", content: "[....] Setting up console font and keymap...done.", delay: 400 },
-                { type: "basicText", content: "INIT: Entering runlevel: 2", delay: 1000 },
-                { type: "basicText", content: '[<span class="bl">info</span>] Using makefile-style concurrent boot in runlevel 2.', delay: 90 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting NFS common utlities: statd idmapd.', delay: 20 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting rpcbind daemon...[....] Already running..', delay: 10 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting enhanced syslogd: rsyslogd.', delay: 300 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting deferred execution scheduler: atd.', delay: 300 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting ACPI services....', delay: 100 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting periodic command scheduler: cron', delay: 80 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting system message bus: dbus', delay: 1000 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting Avahi mDNS/DNS-SD Daemon: avahi-daemon.', delay: 40 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting Common Unix Printing System: cupsd', delay: 90 },
-                { type: "basicText", content: '[ <span="gn">ok</span> ] Starting MTA: exim4.', delay: 20 },
-                { clear: true, type: "basicText", content: "Debian GNU/Linux 7 mrrobot ttyl", delay: 1000 },
-                { type: "basicText", content: "&nbsp", delay: 40 },
-                { type: "typedText", content: "root", prefix: "root login: ", playSound: "init", delay: 1500 },
-                { type: "typedText", content: "•••••••••••", prefix: "password: ", delay: 500 },
-                { clear: true, type: "basicText", content: "", delay: 250 },
-                { clear: true, time: true, type: "basicText", color: "#008c23", prefixColor: "#008c23", content: "-!- friend_ [friend_@" + USER_IP + "] has joined #fsociety.", delay: 1000 }
-            ]
-        };
+        var K = "pnTccVXcbEJvYxtyvSHBHPeN";
+        var P = "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";
 
-        const resumeContent = `
-            Name: Somil Tyagi
-            Email: tyagi.somil1998@gmail.com
-            Experience: 4 years in Incident Response, Cyber Security Professional. Currently working as MDR Analyst in Unit42 team @ Palo Alto. 
-            Skills: Incident Response, Malware Analysis, Penetration Testing
-            Certs : GCIH, GREM, OSCP (Training)
-        `;
+        function decode(b64, key) {
+            var bin = atob(b64);
+            var out = "";
+            for (var i = 0; i < bin.length; i++) {
+                out += String.fromCharCode(bin.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            // handle UTF-8
+            try { return decodeURIComponent(escape(out)); } catch (e) { return out; }
+        }
 
-        function displayStartupLines(lines, index = 0) {
-            if (index < lines.length) {
-                const output = document.getElementById('output');
-                const line = lines[index];
+        var C;
+        try {
+            C = JSON.parse(decode(P, K));
+        } catch (e) {
+            document.getElementById("output").textContent = "Failed to load.";
+            return;
+        }
 
-                if (line.clear) {
-                    output.innerHTML = '';
-                }
+        /* ---------- render helpers ---------- */
+        var output = document.getElementById("output");
+        var inputLine = document.getElementById("input-line");
+        var inputEl = document.getElementById("input");
+        var promptEl = document.getElementById("prompt");
+        var beep = document.getElementById("beep");
 
-                if (line.type === "basicText") {
-                    output.innerHTML += `<p>${line.content}</p>`;
-                } else if (line.type === "typedText") {
-                    output.innerHTML += `<p>${line.prefix || ''}${line.content}</p>`;
-                }
+        document.getElementById("hdr").textContent = C.header || "";
+        promptEl.textContent = C.prompt || "#";
+        document.title = "Hello World!";
 
-                // Add block cursor effect
-                const lastLine = output.lastElementChild;
-                if (lastLine) {
-                    lastLine.classList.add('block-cursor');
-                }
+        function append(html) {
+            var div = document.createElement("div");
+            div.innerHTML = html;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
 
-                console.log(`Displaying line ${index + 1}: ${line.content}`);
-                setTimeout(() => {
-                    if (lastLine) {
-                        lastLine.classList.remove('block-cursor');
-                    }
-                    displayStartupLines(lines, index + 1);
-                }, line.delay);
+        /* ---------- boot sequence ---------- */
+        function runBoot(i) {
+            var lines = C.boot || [];
+            if (i >= lines.length) {
+                append("<p>" + escapeHtml(C.ready || "") + "</p>");
+                inputLine.style.visibility = "visible";
+                inputEl.focus();
+                return;
+            }
+            var line = lines[i];
+            if (line.clear) output.innerHTML = "";
+            append("<p>" + (line.text || "") + "</p>");
+            setTimeout(function () { runBoot(i + 1); }, line.delay || 100);
+        }
+
+        /* ---------- command handling (FIXED) ---------- */
+        function handle(raw) {
+            var input = (raw || "").trim();
+
+            /* Echo the prompt + the TYPED TEXT ONLY.
+               (The old bug copied the live <input> element's innerHTML,
+               which re-showed the previous command. This appends plain
+               escaped text instead, so history stays correct.) */
+            append("<div><span style='color:" +
+                   "var(--prompt)'>" + escapeHtml(C.prompt || "#") + "</span> " +
+                   escapeHtml(input) + "</div>");
+
+            var key = input.toLowerCase();
+
+            if (key === "") {
+                /* do nothing extra */
+            } else if (key === "help") {
+                appendList(C.commands.help);
+            } else if (key === "ls") {
+                appendList(C.commands.ls);
+            } else if (key === "whoami") {
+                var p = C.profile;
+                append("<p>Name: " + escapeHtml(p.name) + "</p>" +
+                       "<p>Email: " + escapeHtml(p.email) + "</p>" +
+                       "<p>Experience: " + escapeHtml(p.experience) + "</p>" +
+                       "<p>Skills: " + escapeHtml(p.skills) + "</p>" +
+                       "<p>Certs: " + escapeHtml(p.certs) + "</p>");
+            } else if (key === "cat resume.txt") {
+                var pr = C.profile;
+                var resume =
+                    "Name: " + pr.name + "\n" +
+                    "Email: " + pr.email + "\n" +
+                    "Experience: " + pr.experience + "\n" +
+                    "Skills: " + pr.skills + "\n" +
+                    "Certs: " + pr.certs;
+                append("<pre>" + escapeHtml(resume) + "</pre>");
+            } else if (key === "clear") {
+                output.innerHTML = "";
+            } else if (key === "connect") {
+                window.open(C.profile.linkedin, "_blank");
+                append("<p>Opening LinkedIn profile...</p>");
+            } else if (key === "blog") {
+                window.open(C.profile.blog, "_blank");
+                append("<p>Opening blog website...</p>");
             } else {
-                console.log("All startup lines displayed. Showing help message.");
-                displayHelpMessage();
-                document.getElementById('input-line').style.visibility = 'visible';
-                document.getElementById('input').focus();
+                try { beep.currentTime = 0; beep.play(); } catch (e) {}
+                append("<p>Command not found: " + escapeHtml(input) + "</p>");
             }
         }
 
-        function displayHelpMessage() {
-            const output = document.getElementById('output');
-            output.innerHTML += `<p>Type 'help' to list available commands.</p>`;
+        function appendList(arr) {
+            if (!arr || !arr.length) return;
+            var html = "";
+            for (var i = 0; i < arr.length; i++) {
+                html += "<p>" + escapeHtml(arr[i]) + "</p>";
+            }
+            append(html);
         }
 
-        window.onload = function() {
-            console.log("Window loaded. Starting to display startup lines.");
-            displayStartupLines(o.initial);
-        };
-
-        document.getElementById('input').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                const input = event.target.value.trim();
-                handleUserInput(input);
+        /* ---------- input events ---------- */
+        inputEl.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                var val = inputEl.value;
+                inputEl.value = "";          /* clear BEFORE handling */
+                handle(val);
             }
         });
 
-        function handleUserInput(input) {
-            const output = document.getElementById('output');
-            const inputLine = document.getElementById('input-line');
-            const inputElement = document.getElementById('input');
+        /* keep focus / tap anywhere to focus (mobile friendly) */
+        document.addEventListener("click", function () {
+            if (inputLine.style.visibility === "visible") inputEl.focus();
+        });
 
-            output.innerHTML += `<div>${inputLine.innerHTML}</div>`;
-            console.log(`User entered command: ${input}`);
-
-            if (input === 'help') {
-                output.innerHTML += `
-                    <p>Available commands:</p>
-                    <ul>
-                        <li>help - List available commands</li>
-                        <li>ls - List files</li>
-                        <li>whoami - Display resume</li>
-                        <li>cat resume.txt - Display the contents of resume.txt</li>
-                        <li>clear - Clear the terminal</li>
-                        <li>connect - Open LinkedIn profile</li>
-                        <li>blog - Open blog website</li>
-                    </ul>
-                `;
-            } else if (input === 'ls') {
-                output.innerHTML += `
-                    <p>Files:</p>
-                    <ul>
-                        <li>resume.txt</li>
-                    </ul>
-                `;
-            } else if (input === 'whoami') {
-                output.innerHTML += `
-                    <p>Name: Somil Tyagi</p>
-                    <p>Email: tyagi.somil1998@gmail.com</p>
-                    <p>Experience: 4 years in Incident Response, Cyber Security Professional. Currently working as MDR Analyst in Unit42 team @ Palo Alto. </p>
-                    <p>Skills: Incident Response, Malware Analysis, Penetration Testing</p>
-                    <p>Certs: GCIH, GREM, OSCP (Training)</p>
-                `;
-            } else if (input === 'cat resume.txt') {
-                output.innerHTML += `<pre>${resumeContent}</pre>`;
-            } else if (input === 'clear') {
-                output.innerHTML = '';
-            } else if (input === 'connect') {
-                window.open('https://www.linkedin.com/in/hacktivity/', '_blank');
-                output.innerHTML += `<p>Opening LinkedIn profile...</p>`;
-            } else if (input === 'blog') {
-                window.open('https://hacktivity.in/', '_blank');
-                output.innerHTML += `<p>Opening blog website...</p>`;
-            } else {
-                const beep = document.getElementById('beep');
-                beep.play();
-                output.innerHTML += `<p>Command not found: ${input}</p>`;
-            }
-
-            inputElement.value = ''; // Clear the input field
-            output.scrollTop = output.scrollHeight;
-        }
-
-        // Additional debugging information
-        console.log("Script loaded. Waiting for window to load.");
+        window.addEventListener("load", function () { runBoot(0); });
+    })();
     </script>
 </body>
 </html>
